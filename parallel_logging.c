@@ -5,10 +5,11 @@
 #include <string.h>
 #include <db.h>
 #include <pthread.h>
+#include <inttypes.h>
 
 #define DEBUG
 #define ERROR 1
-#define NAME_LENGTH 20
+#define NAME_LENGTH 31
 #define ARRAY_SIZE 4
 //ARRAY_SIZE shoule be an even number
 
@@ -36,7 +37,7 @@ struct
 struct
 {
 	DB **all_db_handle;		//notice 1
-	int sum;			//notice 5
+	uint64_t sum;			//notice 5
 }all_db;
 int res;
 int put_number;
@@ -53,6 +54,7 @@ void switch_slot();
 int store_record(size_t key_size,void *key_data,size_t data_size,void *data);
 void close_db();
 int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data);
+void * warm_up(void *p);
 
 void initialize_db(uint32_t flag)
 {
@@ -99,6 +101,12 @@ void initialize_db(uint32_t flag)
 			fprintf(stderr, "DB : Database %d Open failed: %s\n", i, db_strerror(ret));
 			exit(ERROR);
 		}
+		
+		if(ret = pthread_create(&db_manage_id, NULL, warm_up, (void *)bdb_array[i].dbp))
+		{
+			fprintf(stderr, "DB : warm_up thread creation failed: %s\n", strerror(errno));
+			exit(ERROR);
+		}
 
 #ifdef DEBUG
 		printf("node_test_%d created.\n", i);
@@ -134,6 +142,7 @@ void * db_manage(void *arg)
 	int start_index;
 	DB **tmp;
 	char str[10];
+	pthread_t db_manage_id;
 
 	while(1)
 	{
@@ -161,21 +170,27 @@ void * db_manage(void *arg)
 		{
 			if(ret = db_create(&bdb_array[i].dbp, db_env, flag))
 			{
-				fprintf(stderr, "DB : Database %d Creation failed: %s\n", all_db.sum, db_strerror(ret));
+				fprintf(stderr, "DB : Database %"PRIu64" Creation failed: %s\n", all_db.sum, db_strerror(ret));
 				exit(ERROR);
 			}
 
-			sprintf(str, "%d", all_db.sum);
+			sprintf(str, "%"PRIu64"", all_db.sum);
 			memcpy(bdb_array[i].name + strlen(dbname_prefix), str, strlen(str));
 			bdb_array[i].name[strlen(dbname_prefix) + strlen(str)] = '\0';
 
 			if(ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0))
 			{
-				fprintf(stderr, "DB : Database %d Open failed: %s\n", all_db.sum, db_strerror(ret));
+				fprintf(stderr, "DB : Database %"PRIu64" Open failed: %s\n", all_db.sum, db_strerror(ret));
+				exit(ERROR);
+			}
+			
+			if(ret = pthread_create(&db_manage_id, NULL, warm_up, (void *)bdb_array[i].dbp))
+			{
+				fprintf(stderr, "DB : warm_up thread creation failed: %s\n", strerror(errno));
 				exit(ERROR);
 			}
 #ifdef DEBUG
-			printf("node_test_%d created.\n", all_db.sum);
+			printf("node_test_%"PRIu64" created.\n", all_db.sum);
 #endif
 
 			all_db.all_db_handle[all_db.sum] = bdb_array[i].dbp;
@@ -318,7 +333,7 @@ int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data
 	pthread_mutex_unlock(&alldb_mtx);
 
 	if(i < 0)
-		return 1;
+		return ERROR;
 	else
 	{
 		//not sure whether the following is correct
@@ -326,4 +341,22 @@ int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data
 		*data = db_data.data;
 		return 0;
 	}
+}
+
+void * warm_up(void *p)
+{
+	DB *dbp = (DB *)p;
+	DBT key, data;
+	uint64_t key_data = 0, data_data = 0;
+	
+	memset(&key, 0, sizeof(DBT));
+	memset(&data, 0, sizeof(DBT));
+	
+	key.size = sizeof(uint64_t);
+	key.data = &key_data;
+	data.size = sizeof(uint64_t);
+	data.data = &data_data;
+	
+	dbp->put(dbp, NULL, &key, &data, DB_AUTO_COMMIT);
+	dbp->del(dbp, NULL, &key, 0);
 }

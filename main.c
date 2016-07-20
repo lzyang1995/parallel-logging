@@ -1,17 +1,22 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <db.h>
+#include <unistd.h>
+#include <inttypes.h>
 
 void * func(void *arg);
+void * func2(void *arg);
 
-int key;
+uint64_t key;
 pthread_spinlock_t spinlock;
-const char *data = "become legendary";
+//const char *data = "become legendary";
 
 int main()
 {
 	int i, ret;
 	pthread_t pid[5];
+	pthread_t retrieve_id;
 
 	initialize_db(0);
 	key = 0;
@@ -24,6 +29,14 @@ int main()
 			exit(1);
 		}
 
+	usleep(3000000L);
+
+	if(ret = pthread_create(&retrieve_id, NULL, func2, NULL))
+	{
+		fprintf(stderr, "Thread func2 creation failed");
+		exit(1);
+	}
+
 	while(1);
 
 	return 0;
@@ -31,7 +44,7 @@ int main()
 
 void * func(void *arg)
 {
-	int thekey;
+	uint64_t thekey;
 
 	while(1)
 	{
@@ -39,6 +52,27 @@ void * func(void *arg)
 		thekey = key++;
 		pthread_spin_unlock(&spinlock);
 
-		store_record(sizeof(int), &thekey, 17, data);
+		store_record(sizeof(uint64_t), &thekey, sizeof(uint64_t), &thekey);
+	}
+}
+
+void * func2(void *arg)
+{
+	FILE *fp = fopen("test.txt", "w");
+
+	uint64_t rekey = 9876;
+	size_t data_size;
+	uint64_t *data_data;
+
+	while(1)
+	{
+		int i = retrieve_record(sizeof(uint64_t), (void *)&rekey, &data_size, (void **)&data_data);
+
+		if(i != 0)
+			fprintf(fp, "retrieve error\n");
+		else
+			fprintf(fp, "%"PRIu64" : %"PRIu64"\n", rekey, *data_data);
+
+		rekey += 1659;
 	}
 }
