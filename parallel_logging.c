@@ -102,11 +102,7 @@ void initialize_db(uint32_t flag)
 			exit(ERROR);
 		}
 		
-		if(ret = pthread_create(&db_manage_id, NULL, warm_up, (void *)bdb_array[i].dbp))
-		{
-			fprintf(stderr, "DB : warm_up thread creation failed: %s\n", strerror(errno));
-			exit(ERROR);
-		}
+		warm_up(bdb_array[i].dbp);
 
 #ifdef DEBUG
 		printf("node_test_%d created.\n", i);
@@ -184,11 +180,7 @@ void * db_manage(void *arg)
 				exit(ERROR);
 			}
 			
-			if(ret = pthread_create(&db_manage_id, NULL, warm_up, (void *)bdb_array[i].dbp))
-			{
-				fprintf(stderr, "DB : warm_up thread creation failed: %s\n", strerror(errno));
-				exit(ERROR);
-			}
+			warm_up(bdb_array[i].dbp);
 #ifdef DEBUG
 			printf("node_test_%"PRIu64" created.\n", all_db.sum);
 #endif
@@ -343,9 +335,8 @@ int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data
 	}
 }
 
-void * warm_up(void *p)
+void * warm_up(DB *dbp)
 {
-	DB *dbp = (DB *)p;
 	DBT key, data;
 	uint64_t key_data = 0, data_data = 0;
 	
