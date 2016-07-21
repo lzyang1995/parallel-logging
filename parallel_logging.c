@@ -54,7 +54,7 @@ void switch_slot();
 int store_record(size_t key_size,void *key_data,size_t data_size,void *data);
 void close_db();
 int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data);
-void * warm_up(void *p);
+void warm_up(DB *dbp);
 
 void initialize_db(uint32_t flag)
 {
@@ -335,7 +335,7 @@ int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data
 	}
 }
 
-void * warm_up(DB *dbp)
+void warm_up(DB *dbp)
 {
 	DBT key, data;
 	uint64_t key_data = 0, data_data = 0;
