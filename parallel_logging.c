@@ -7,6 +7,7 @@
 #include <pthread.h>
 #include <inttypes.h>
 #include <unistd.h>
+#include <time.h>
 
 #define DEBUG
 //#define USE_ENV
@@ -57,7 +58,11 @@ void initialize_db(uint32_t flag);
 void * db_manage(void *arg);
 void consume();
 void switch_slot();
+#ifdef DEBUG
+int store_record(size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4);
+#else
 int store_record(size_t key_size,void *key_data,size_t data_size,void *data);
+#endif
 void close_db();
 int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data);
 void warm_up(DB *dbp);
@@ -270,8 +275,15 @@ void switch_slot()
 	pthread_spin_unlock(&pn_lock);
 }
 
+#ifdef DEBUG
+int store_record(size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4)
+#else
 int store_record(size_t key_size,void *key_data,size_t data_size,void *data)
+#endif
 {
+#ifdef DEBUG
+	struct timespec start_time, end_time;
+#endif
 	int ret = 1;
 	DBT key,db_data;
 	db_info *pdb_info;
@@ -283,20 +295,45 @@ int store_record(size_t key_size,void *key_data,size_t data_size,void *data)
 	db_data.data = data;
 	db_data.size = data_size;
 
+#ifdef DEBUG
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
+#endif
 	pthread_rwlock_rdlock(&rwlock);
 	pdb_info = store_db.slot_ptr;
 	pthread_rwlock_unlock(&rwlock);
+#ifdef DEBUG
+	clock_gettime(CLOCK_MONOTONIC, &end_time);
+	*diff1 = BILLION * (end_time.tv_sec - start_time.tv_sec) + end_time.tv_nsec - start_time.tv_nsec;
+#endif
 
+#ifdef DEBUG
+	clock_gettime(CLOCK_MONOTONIC, &start_time);
+	ret = pdb_info->dbp->put(pdb_info->dbp, NULL, &key, &db_data, DB_AUTO_COMMIT);
+	clock_gettime(CLOCK_MONOTONIC, &end_time);
+	*diff2 = BILLION * (end_time.tv_sec - start_time.tv_sec) + end_time.tv_nsec - start_time.tv_nsec;
+	if(ret)
+#else
 	if(ret = pdb_info->dbp->put(pdb_info->dbp, NULL, &key, &db_data, DB_AUTO_COMMIT))
+#endif
 	{
 		fprintf(stderr, "DB : Store record failed: %s\n", db_strerror(ret));
 	}
 	else
 	{
+#ifdef DEBUG
+		clock_gettime(CLOCK_MONOTONIC, &start_time);
+#endif
 		pthread_spin_lock(&pn_lock);
 		put_number++;
 		pthread_spin_unlock(&pn_lock);
+#ifdef DEBUG
+		clock_gettime(CLOCK_MONOTONIC, &end_time);
+		*diff3 = BILLION * (end_time.tv_sec - start_time.tv_sec) + end_time.tv_nsec - start_time.tv_nsec;
+#endif
 
+#ifdef DEBUG
+		clock_gettime(CLOCK_MONOTONIC, &start_time);
+#endif
 		if (put_number == MAX_PUT)
 		{
 			if ((store_db.slot_pos + 1) % (ARRAY_SIZE / 2) == 0)
@@ -304,6 +341,10 @@ int store_record(size_t key_size,void *key_data,size_t data_size,void *data)
 			else
 				switch_slot();
 		}
+#ifdef DEBUG
+		clock_gettime(CLOCK_MONOTONIC, &end_time);
+		*diff4 = BILLION * (end_time.tv_sec - start_time.tv_sec) + end_time.tv_nsec - start_time.tv_nsec;
+#endif		
 	}
 
 	return ret;
