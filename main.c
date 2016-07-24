@@ -30,7 +30,7 @@ int main()
 	pthread_spin_init(&filelock, PTHREAD_PROCESS_PRIVATE);
 
 	for(i = 0;i < THREAD_NUM;i++)
-		if(ret = pthread_create(&pid[i], NULL, func, (void *)fp)
+		if(ret = pthread_create(&pid[i], NULL, func, (void *)fp))
 		{
 			fprintf(stderr, "Thread creation failed: %d\n", i);
 			exit(1);
