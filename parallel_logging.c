@@ -325,7 +325,7 @@ int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data
 	pthread_mutex_unlock(&alldb_mtx);
 
 	if(i < 0)
-		return ERROR;
+		return DB_NOTFOUND;
 	else
 	{
 		//not sure whether the following is correct
