@@ -4,6 +4,7 @@
 #include <db.h>
 #include <inttypes.h>
 #include <errno.h>
+#include <string.h>
 
 #define COUNT 10000
 #define THREAD_NUM 5
