@@ -12,7 +12,7 @@
 //#define USE_ENV
 #define ERROR 1
 #define NAME_LENGTH 31
-#define ARRAY_SIZE 4
+#define ARRAY_SIZE 10
 //ARRAY_SIZE shoule be an even number
 
 //constants
@@ -116,8 +116,16 @@ void initialize_db(uint32_t flag)
 		memcpy(bdb_array[i].name + strlen(dbname_prefix), tmp, strlen(tmp));
 		bdb_array[i].name[strlen(dbname_prefix) + strlen(tmp)] = '\0';
 		
-		bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE);
-		bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1);
+		if(ret = bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE))
+		{
+			fprintf(stderr, "DB : Set pagesize for Database %d failed: %s\n", i, db_strerror(ret));
+			exit(ERROR);
+		}
+		if(ret = bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1))
+		{
+			fprintf(stderr, "DB : Set cachesize for Database %d failed: %s\n", i, db_strerror(ret));
+			exit(ERROR);
+		}
 
 		if(ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0))
 		{
@@ -203,8 +211,16 @@ void * db_manage(void *arg)
 			memcpy(bdb_array[i].name + strlen(dbname_prefix), str, strlen(str));
 			bdb_array[i].name[strlen(dbname_prefix) + strlen(str)] = '\0';
 			
-			bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE);
-			bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1);
+			if(ret = bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE))
+			{
+				fprintf(stderr, "DB : Set pagesize for Database %"PRIu64" failed: %s\n", all_db.sum, db_strerror(ret));
+				exit(ERROR);
+			}
+			if(ret = bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1))
+			{
+				fprintf(stderr, "DB : Set cachesize for Database %"PRIu64" failed: %s\n", all_db.sum, db_strerror(ret));
+				exit(ERROR);
+			}
 
 			if(ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0))
 			{
@@ -271,7 +287,7 @@ int store_record(size_t key_size,void *key_data,size_t data_size,void *data)
 	pdb_info = store_db.slot_ptr;
 	pthread_rwlock_unlock(&rwlock);
 
-	if(ret = pdb_info->dbp->put(pdb_info->dbp, NULL, &key, &db_data, DB_NOOVERWRITE))
+	if(ret = pdb_info->dbp->put(pdb_info->dbp, NULL, &key, &db_data, DB_AUTO_COMMIT))
 	{
 		fprintf(stderr, "DB : Store record failed: %s\n", db_strerror(ret));
 	}
