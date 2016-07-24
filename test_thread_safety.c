@@ -16,11 +16,10 @@ void * func2(void *arg);
 
 uint64_t key = 0;
 pthread_spinlock_t spinlock;
-
+DB * bdb;
 
 int main(int argc, char **argv)
 {	
-	DB * bdb;
 	int ret, i;
 	
 	if(ret = db_create(&bdb, NULL, 0))
@@ -72,8 +71,16 @@ void * func(void *arg)
 		storekey = ++key;
 		pthread_spin_unlock(&spinlock);
 		
+		DBT key, data;
+		memset(&key, 0, sizeof(DBT));
+		memset(&data, 0, sizeof(DBT));
 		
-		store_record(sizeof(uint64_t), &storekey, sizeof(uint64_t), &storekey);
+		key.data = &storekey;
+		key.size = sizeof(uint64_t);
+		data.data = &storekey;
+		data.data = sizeof(uint64_t);
+		
+		bdb->put(bdb, NULL, &key, &data, DB_AUTO_COMMIT);
 	}
 }
 
@@ -82,14 +89,21 @@ void * func2(void *arg)
 	FILE *fp = fopen(FILENAME, "w");
 	int ret;
 	uint64_t i;
-	size_t datasize;
-	uint64_t *data;
+	DBT key, data;
 	
 	for(i = 1;i <= COUNT;i++)
 	{
-		if(ret = retrieve_record(sizeof(uint64_t), &i, &datasize, &data))
+		memset(&key, 0, sizeof(DBT));
+		memset(&data, 0, sizeof(DBT));
+		
+		key.data = &i;
+		key.size = sizeof(uint64_t);
+		
+		data.flags = DB_DBT_MALLOC;
+		
+		if(ret = bdb->get(bdb, NULL, &key, &data, 0))
 			fprintf(fp, "%"PRIu64":ERROR: %s\n", i, db_strerror(ret));
 		else
-			fprintf(fp, "%"PRIu64":%"PRIu64"\n", i, *data);
+			fprintf(fp, "%"PRIu64":%"PRIu64"\n", i, *((uint64_t *)data.data));
 	}
 }
