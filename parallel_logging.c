@@ -9,6 +9,7 @@
 #include <unistd.h>
 
 #define DEBUG
+//#define USE_ENV
 #define ERROR 1
 #define NAME_LENGTH 31
 #define ARRAY_SIZE 4
