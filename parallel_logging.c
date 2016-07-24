@@ -15,6 +15,7 @@
 #define NAME_LENGTH 31
 #define ARRAY_SIZE 10
 //ARRAY_SIZE shoule be an even number
+#define BILLION 1000000000UL
 
 //constants
 const char *db_path = "./DB";
