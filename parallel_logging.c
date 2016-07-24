@@ -20,6 +20,8 @@ const char *db_path = "./DB";
 const char *dbname_prefix = "node_test_";
 const int MAX_RES = 1;		//notice 2
 const int MAX_PUT = 100000;
+const uint32_t PAGESIZE = 32 * 1024;
+const uint32_t CACHESIZE = 32 * 1024 * 1024;
 
 //struct definition
 typedef struct _db_info
@@ -113,6 +115,9 @@ void initialize_db(uint32_t flag)
 		sprintf(tmp, "%d", i);
 		memcpy(bdb_array[i].name + strlen(dbname_prefix), tmp, strlen(tmp));
 		bdb_array[i].name[strlen(dbname_prefix) + strlen(tmp)] = '\0';
+		
+		bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE);
+		bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1);
 
 		if(ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0))
 		{
@@ -197,6 +202,9 @@ void * db_manage(void *arg)
 			sprintf(str, "%"PRIu64"", all_db.sum);
 			memcpy(bdb_array[i].name + strlen(dbname_prefix), str, strlen(str));
 			bdb_array[i].name[strlen(dbname_prefix) + strlen(str)] = '\0';
+			
+			bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE);
+			bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1);
 
 			if(ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0))
 			{
