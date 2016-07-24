@@ -78,7 +78,7 @@ void * func(void *arg)
 		key.data = &storekey;
 		key.size = sizeof(uint64_t);
 		data.data = &storekey;
-		data.data = sizeof(uint64_t);
+		data.size = sizeof(uint64_t);
 		
 		bdb->put(bdb, NULL, &key, &data, DB_AUTO_COMMIT);
 	}
