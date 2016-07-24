@@ -6,6 +6,7 @@
 #include <db.h>
 #include <pthread.h>
 #include <inttypes.h>
+#include <unistd.h>
 
 #define DEBUG
 #define ERROR 1
@@ -17,7 +18,7 @@
 const char *db_path = "./DB";
 const char *dbname_prefix = "node_test_";
 const int MAX_RES = 1;		//notice 2
-const int MAX_PUT = 10000;
+const int MAX_PUT = 100000;
 
 //struct definition
 typedef struct _db_info
@@ -27,7 +28,9 @@ typedef struct _db_info
 }db_info;
 
 //global variables
+#ifdef USE_ENV
 DB_ENV *db_env;
+#endif
 db_info bdb_array[ARRAY_SIZE];
 struct
 {
@@ -69,6 +72,7 @@ void initialize_db(uint32_t flag)
 		exit(ERROR);
 	}
 
+#ifdef USE_ENV
 	if(ret = db_env_create(&db_env, 0))
 	{
 		fprintf(stderr, "DB : Error creating env handle: %s\n", db_strerror(ret));
@@ -80,12 +84,25 @@ void initialize_db(uint32_t flag)
 		fprintf(stderr, "DB : Environment open failed: %s\n", db_strerror(ret));
 		exit(ERROR);
 	}
+#else
+	if(ret = chdir(db_path))
+	{
+		fprintf(stderr, "DB : Dir Creation failed: %s\n", strerror(errno));
+		exit(ERROR);
+	}
+#endif
 
 	all_db.all_db_handle = (DB **)malloc(ARRAY_SIZE * sizeof(DB *));
 	all_db.sum = ARRAY_SIZE;
 	for(i = 0;i < ARRAY_SIZE;i++)
 	{
-		if(ret = db_create(&bdb_array[i].dbp, db_env, flag))
+		if(ret = db_create(&bdb_array[i].dbp,
+#ifdef USE_ENV
+							db_env,
+#else
+							NULL, 
+#endif
+							flag))
 		{
 			fprintf(stderr, "DB : Database %d Creation failed: %s\n", i, db_strerror(ret));
 			exit(ERROR);
@@ -164,7 +181,13 @@ void * db_manage(void *arg)
 
 		for(i = start_index;i < start_index + ARRAY_SIZE / 2;i++)
 		{
-			if(ret = db_create(&bdb_array[i].dbp, db_env, flag))
+			if(ret = db_create(&bdb_array[i].dbp,
+#ifdef USE_ENV
+								db_env,
+#else
+								NULL, 
+#endif
+								flag))
 			{
 				fprintf(stderr, "DB : Database %"PRIu64" Creation failed: %s\n", all_db.sum, db_strerror(ret));
 				exit(ERROR);
@@ -267,8 +290,15 @@ void close_db()
 {
 	pthread_mutex_lock(&alldb_mtx);
 
-	//close the environment and all DB handle
+	//close all DB handles
+#ifdef USE_ENV
 	db_env->close(db_env, DB_FORCESYNC);
+#else
+	uint64_t i;
+	for(i = 0;i < all_db.sum;i++)
+		if(all_db.all_db_handle[i] != NULL)
+			all_db.all_db_handle[i]->close(all_db.all_db_handle[i], 0);
+#endif
 
 	//destroy the sychronization variables
 	pthread_cond_destroy(&empty);
