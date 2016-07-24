@@ -3,14 +3,18 @@
 #include <stdlib.h>
 #include <db.h>
 #include <inttypes.h>
+#include <errno.h>
 
 #define COUNT 10000
 #define THREAD_NUM 5
 #define ERROR 1
 #define FILENAME "retrieve.txt"
 
+void * func(void *arg);
+void * func2(void *arg);
+
 uint64_t key = 0;
-pthread_spinlock_t spinlock;;
+pthread_spinlock_t spinlock;
 
 
 int main(int argc, char **argv)
@@ -26,7 +30,7 @@ int main(int argc, char **argv)
 		exit(ERROR);
 	}
 	
-	if(ret = bdb->db_open(bdb, NULL, "mydb", NULL, DB_BTREE, DB_CREATE | DB_THREAD, 0))
+	if(ret = bdb->open(bdb, NULL, "mydb", NULL, DB_BTREE, DB_CREATE | DB_THREAD, 0))
 	{
 		fprintf(stderr, "DB open error: %s.\n", db_strerror(ret));
 		exit(ERROR);
