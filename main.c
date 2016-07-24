@@ -52,7 +52,7 @@ void * func(void *arg)
 	while(1)
 	{
 		pthread_spin_lock(&spinlock);
-		if(key = COUNT)
+		if(key == COUNT)
 		{
 			pthread_spin_unlock(&spinlock);
 			break;
