@@ -19,9 +19,7 @@ pthread_spinlock_t spinlock;
 
 
 int main(int argc, char **argv)
-{
-	uint64_t key;
-	
+{	
 	DB * bdb;
 	int ret, i;
 	
@@ -83,7 +81,8 @@ void * func2(void *arg)
 {
 	FILE *fp = fopen(FILENAME, "w");
 	int ret;
-	uint64_t i, datasize;
+	uint64_t i;
+	size_t datasize;
 	uint64_t *data;
 	
 	for(i = 1;i <= COUNT;i++)
