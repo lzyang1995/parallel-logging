@@ -7,7 +7,7 @@
 #include <time.h>
 
 #define THREAD_NUM 20
-#define COUNT 50000000UL
+#define COUNT 10 * 100000UL
 #define BILLION 1000000000UL
 #define FILENAME "time.txt"
 
