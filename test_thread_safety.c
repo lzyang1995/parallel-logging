@@ -66,7 +66,10 @@ void * func(void *arg)
 	{
 		pthread_spin_lock(&spinlock);
 		if(key == COUNT)
+		{
+			pthread_spin_unlock(&spinlock);
 			break;
+		}
 		
 		storekey = ++key;
 		pthread_spin_unlock(&spinlock);
