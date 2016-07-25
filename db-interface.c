@@ -9,7 +9,7 @@
 #include <unistd.h>
 #include <time.h>
 
-#define DEBUG
+//#define DEBUG
 //#define USE_ENV
 #define ERROR 1
 #define NAME_LENGTH 31
@@ -55,20 +55,20 @@ pthread_rwlock_t rwlock;
 pthread_spinlock_t pn_lock;		//notice 4
 
 //function declaration
-void initialize_db(uint32_t flag);
+db * initialize_db(const char* db_name, uint32_t flag);
 void * db_manage(void *arg);
 void consume();
 void switch_slot();
 #ifdef DEBUG
-int store_record(size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4);
+int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4);
 #else
-int store_record(size_t key_size,void *key_data,size_t data_size,void *data);
+int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data);
 #endif
-void close_db();
-int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data);
+void close_db(db *arg, uint32_t flags);
+int retrieve_record(db *arg, size_t key_size,void *key_data,size_t *data_size,void **data);
 void warm_up(DB *dbp);
 
-void initialize_db(uint32_t flag)
+db * initialize_db(const char* db_name, uint32_t flag)
 {
 	int ret, i;
 	pthread_t db_manage_id;
@@ -165,7 +165,7 @@ void initialize_db(uint32_t flag)
 		exit(ERROR);
 	}
 
-	return;
+	return NULL;
 }
 
 void * db_manage(void *arg)
@@ -277,9 +277,9 @@ void switch_slot()
 }
 
 #ifdef DEBUG
-int store_record(size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4)
+int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4)
 #else
-int store_record(size_t key_size,void *key_data,size_t data_size,void *data)
+int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data)
 #endif
 {
 #ifdef DEBUG
@@ -353,7 +353,7 @@ int store_record(size_t key_size,void *key_data,size_t data_size,void *data)
 
 //what will happen if it is called?
 //notice
-void close_db()
+void close_db(db *arg, uint32_t flags)
 {
 	pthread_mutex_lock(&alldb_mtx);
 
@@ -364,7 +364,7 @@ void close_db()
 	uint64_t i;
 	for(i = 0;i < all_db.sum;i++)
 		if(all_db.all_db_handle[i] != NULL)
-			all_db.all_db_handle[i]->close(all_db.all_db_handle[i], 0);
+			all_db.all_db_handle[i]->close(all_db.all_db_handle[i], flags);
 #endif
 
 	//destroy the sychronization variables
@@ -376,13 +376,13 @@ void close_db()
 	//free all_db_handle
 	free(all_db.all_db_handle);
 
-	pthread_mutex_unlock(&alldb_mtx);
+	//pthread_mutex_unlock(&alldb_mtx);
 
 	return;
 }
 
 //notice : has the buffer be allocated before calling this function? 
-int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data)
+int retrieve_record(db *arg, size_t key_size,void *key_data,size_t *data_size,void **data)
 {
 	int ret = 1;
 	DBT key,db_data;
