@@ -8,6 +8,7 @@
 #include <inttypes.h>
 #include <unistd.h>
 #include <time.h>
+#include <db-interface.h>
 
 //#define DEBUG
 //#define USE_ENV
