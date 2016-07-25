@@ -60,11 +60,7 @@ db * initialize_db(const char* db_name, uint32_t flag);
 void * db_manage(void *arg);
 void consume();
 void switch_slot();
-#ifdef DEBUG
-int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4);
-#else
 int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data);
-#endif
 void close_db(db *arg, uint32_t flags);
 int retrieve_record(db *arg, size_t key_size,void *key_data,size_t *data_size,void **data);
 void warm_up(DB *dbp);
@@ -76,26 +72,26 @@ db * initialize_db(const char* db_name, uint32_t flag)
 	char tmp[10];
 
 
-	if(ret = mkdir(db_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH))
+	if((ret = mkdir(db_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) != 0)
 	{
 		fprintf(stderr, "DB : Dir Creation failed: %s\n", strerror(errno));
 		exit(ERROR);
 	}
 
 #ifdef USE_ENV
-	if(ret = db_env_create(&db_env, 0))
+	if((ret = db_env_create(&db_env, 0)) != 0)
 	{
 		fprintf(stderr, "DB : Error creating env handle: %s\n", db_strerror(ret));
 		exit(ERROR);
 	}
 
-	if(ret = db_env->open(db_env, db_path, DB_CREATE|DB_INIT_CDB|DB_INIT_MPOOL|DB_THREAD, 0))
+	if((ret = db_env->open(db_env, db_path, DB_CREATE|DB_INIT_CDB|DB_INIT_MPOOL|DB_THREAD, 0)) != 0)
 	{
 		fprintf(stderr, "DB : Environment open failed: %s\n", db_strerror(ret));
 		exit(ERROR);
 	}
 #else
-	if(ret = chdir(db_path))
+	if((ret = chdir(db_path)) != 0)
 	{
 		fprintf(stderr, "DB : Dir Creation failed: %s\n", strerror(errno));
 		exit(ERROR);
@@ -106,13 +102,13 @@ db * initialize_db(const char* db_name, uint32_t flag)
 	all_db.sum = ARRAY_SIZE;
 	for(i = 0;i < ARRAY_SIZE;i++)
 	{
-		if(ret = db_create(&bdb_array[i].dbp,
+		if((ret = db_create(&bdb_array[i].dbp,
 #ifdef USE_ENV
 							db_env,
 #else
 							NULL, 
 #endif
-							flag))
+							flag)) != 0)
 		{
 			fprintf(stderr, "DB : Database %d Creation failed: %s\n", i, db_strerror(ret));
 			exit(ERROR);
@@ -123,18 +119,18 @@ db * initialize_db(const char* db_name, uint32_t flag)
 		memcpy(bdb_array[i].name + strlen(dbname_prefix), tmp, strlen(tmp));
 		bdb_array[i].name[strlen(dbname_prefix) + strlen(tmp)] = '\0';
 		
-		if(ret = bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE))
+		if((ret = bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE)) != 0)
 		{
 			fprintf(stderr, "DB : Set pagesize for Database %d failed: %s\n", i, db_strerror(ret));
 			exit(ERROR);
 		}
-		if(ret = bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1))
+		if((ret = bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1)) != 0)
 		{
 			fprintf(stderr, "DB : Set cachesize for Database %d failed: %s\n", i, db_strerror(ret));
 			exit(ERROR);
 		}
 
-		if(ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0))
+		if((ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0)) != 0)
 		{
 			fprintf(stderr, "DB : Database %d Open failed: %s\n", i, db_strerror(ret));
 			exit(ERROR);
@@ -160,7 +156,7 @@ db * initialize_db(const char* db_name, uint32_t flag)
 	pthread_spin_init(&pn_lock, PTHREAD_PROCESS_PRIVATE);
 
 	//create db_manage thread
-	if(ret = pthread_create(&db_manage_id, NULL, db_manage, (void *)flag))
+	if((ret = pthread_create(&db_manage_id, NULL, db_manage, (void *)flag)) != 0)
 	{
 		fprintf(stderr, "DB : db_manage thread creation failed: %s\n", strerror(errno));
 		exit(ERROR);
@@ -202,13 +198,13 @@ void * db_manage(void *arg)
 
 		for(i = start_index;i < start_index + ARRAY_SIZE / 2;i++)
 		{
-			if(ret = db_create(&bdb_array[i].dbp,
+			if((ret = db_create(&bdb_array[i].dbp,
 #ifdef USE_ENV
 								db_env,
 #else
 								NULL, 
 #endif
-								flag))
+								flag)) != 0)
 			{
 				fprintf(stderr, "DB : Database %"PRIu64" Creation failed: %s\n", all_db.sum, db_strerror(ret));
 				exit(ERROR);
@@ -218,18 +214,18 @@ void * db_manage(void *arg)
 			memcpy(bdb_array[i].name + strlen(dbname_prefix), str, strlen(str));
 			bdb_array[i].name[strlen(dbname_prefix) + strlen(str)] = '\0';
 			
-			if(ret = bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE))
+			if((ret = bdb_array[i].dbp->set_pagesize(bdb_array[i].dbp, PAGESIZE)) != 0)
 			{
 				fprintf(stderr, "DB : Set pagesize for Database %"PRIu64" failed: %s\n", all_db.sum, db_strerror(ret));
 				exit(ERROR);
 			}
-			if(ret = bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1))
+			if((ret = bdb_array[i].dbp->set_cachesize(bdb_array[i].dbp, 0, CACHESIZE, 1)) != 0)
 			{
 				fprintf(stderr, "DB : Set cachesize for Database %"PRIu64" failed: %s\n", all_db.sum, db_strerror(ret));
 				exit(ERROR);
 			}
 
-			if(ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0))
+			if((ret = bdb_array[i].dbp->open(bdb_array[i].dbp, NULL, bdb_array[i].name, NULL, DB_BTREE, DB_THREAD|DB_CREATE, 0)) != 0)
 			{
 				fprintf(stderr, "DB : Database %"PRIu64" Open failed: %s\n", all_db.sum, db_strerror(ret));
 				exit(ERROR);
@@ -277,11 +273,11 @@ void switch_slot()
 	pthread_spin_unlock(&pn_lock);
 }
 
-#ifdef DEBUG
-int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4)
-#else
+//#ifdef DEBUG
+//int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data, uint64_t *diff1, uint64_t *diff2, uint64_t *diff3, uint64_t *diff4)
+//#else
 int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *data)
-#endif
+//#endif
 {
 #ifdef DEBUG
 	struct timespec start_time, end_time;
@@ -313,9 +309,9 @@ int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *
 	ret = pdb_info->dbp->put(pdb_info->dbp, NULL, &key, &db_data, DB_AUTO_COMMIT);
 	clock_gettime(CLOCK_MONOTONIC, &end_time);
 	*diff2 = BILLION * (end_time.tv_sec - start_time.tv_sec) + end_time.tv_nsec - start_time.tv_nsec;
-	if(ret)
+	if(ret != 0)
 #else
-	if(ret = pdb_info->dbp->put(pdb_info->dbp, NULL, &key, &db_data, DB_AUTO_COMMIT))
+	if((ret = pdb_info->dbp->put(pdb_info->dbp, NULL, &key, &db_data, DB_AUTO_COMMIT)) != 0)
 #endif
 	{
 		fprintf(stderr, "DB : Store record failed: %s\n", db_strerror(ret));
@@ -407,7 +403,7 @@ int retrieve_record(db *arg, size_t key_size,void *key_data,size_t *data_size,vo
 	pthread_mutex_lock(&alldb_mtx);
 	for(i = index;i >= 0;i--)
 	{
-		if(ret = all_db.all_db_handle[i]->get(all_db.all_db_handle[i], NULL, &key, &db_data, 0))
+		if((ret = all_db.all_db_handle[i]->get(all_db.all_db_handle[i], NULL, &key, &db_data, 0)) != 0)
 		{
 			if(ret == DB_NOTFOUND)
 				continue;
