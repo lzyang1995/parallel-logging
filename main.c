@@ -7,7 +7,7 @@
 #include <time.h>
 
 #define THREAD_NUM 20
-#define COUNT 10 * 100000UL
+#define COUNT 1 * 100000UL
 #define BILLION 1000000000UL
 #define FILENAME "timeslice.txt"
 
@@ -45,9 +45,9 @@ int main()
 void * func(void *arg)
 {
 	uint64_t thekey;
-	FILE *fp = (FILE *)arg;
+	//FILE *fp = (FILE *)arg;
 	//struct timespec start_time, end_time;
-	uint64_t diff1, diff2, diff3, diff4;
+	//uint64_t diff1, diff2, diff3, diff4;
 
 	while(1)
 	{
@@ -62,13 +62,13 @@ void * func(void *arg)
 		pthread_spin_unlock(&spinlock);
 
 		//clock_gettime(CLOCK_MONOTONIC, &start_time);
-		store_record(sizeof(uint64_t), &thekey, sizeof(uint64_t), &thekey, &diff1, &diff2, &diff3, &diff4);
+		store_record(NULL, sizeof(uint64_t), &thekey, sizeof(uint64_t), &thekey);
 		//clock_gettime(CLOCK_MONOTONIC, &end_time);
 		//diff = BILLION * (end_time.tv_sec - start_time.tv_sec) + end_time.tv_nsec - start_time.tv_nsec;
 		
-		pthread_spin_lock(&filelock);
-		fprintf(fp, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", diff1, diff2, diff3, diff4);
-		pthread_spin_unlock(&filelock);
+		//pthread_spin_lock(&filelock);
+		//fprintf(fp, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", diff1, diff2, diff3, diff4);
+		//pthread_spin_unlock(&filelock);
 	}
 }
 
