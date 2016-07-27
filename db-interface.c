@@ -19,7 +19,7 @@
 #define BILLION 1000000000UL
 
 //constants
-const char *db_path = "./DB";
+const char *db_path = "./DB_";
 const char *dbname_prefix = "node_test_";
 const int MAX_RES = 1;		//notice 2
 const int MAX_PUT = 100000;
@@ -64,15 +64,22 @@ int store_record(db *arg, size_t key_size,void *key_data,size_t data_size,void *
 void close_db(db *arg, uint32_t flags);
 int retrieve_record(db *arg, size_t key_size,void *key_data,size_t *data_size,void **data);
 void warm_up(DB *dbp);
+uint64_t ato_uint64(char *str);
 
 db * initialize_db(const char* db_name, uint32_t flag)
 {
 	int ret, i;
 	pthread_t db_manage_id;
 	char tmp[10];
+	char *db_dir;
+
+	db_dir = (char *)malloc(strlen(db_path) + strlen(db_name) + 1);
+	memcpy(db_dir, db_path, strlen(db_path));
+	memcpy(db_dir + strlen(db_path), db_name, strlen(db_name));
+	db_dir[strlen(db_path) + strlen(db_name)] = '\0';
 
 
-	if((ret = mkdir(db_path, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) != 0)
+	if((ret = mkdir(db_dir, S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH)) != 0)
 	{
 		fprintf(stderr, "DB : Dir Creation failed: %s\n", strerror(errno));
 		exit(ERROR);
@@ -85,13 +92,13 @@ db * initialize_db(const char* db_name, uint32_t flag)
 		exit(ERROR);
 	}
 
-	if((ret = db_env->open(db_env, db_path, DB_CREATE|DB_INIT_CDB|DB_INIT_MPOOL|DB_THREAD, 0)) != 0)
+	if((ret = db_env->open(db_env, db_dir, DB_CREATE|DB_INIT_CDB|DB_INIT_MPOOL|DB_THREAD, 0)) != 0)
 	{
 		fprintf(stderr, "DB : Environment open failed: %s\n", db_strerror(ret));
 		exit(ERROR);
 	}
 #else
-	if((ret = chdir(db_path)) != 0)
+	if((ret = chdir(db_dir)) != 0)
 	{
 		fprintf(stderr, "DB : Dir Creation failed: %s\n", strerror(errno));
 		exit(ERROR);
@@ -384,7 +391,7 @@ int retrieve_record(db *arg, size_t key_size,void *key_data,size_t *data_size,vo
 	int ret = 1;
 	DBT key,db_data;
 	db_info *pdb_info;
-	int i, index;
+	uint64_t i, index;
 
 	memset(&key,0,sizeof(key));
 	memset(&db_data,0,sizeof(db_data));
@@ -398,7 +405,7 @@ int retrieve_record(db *arg, size_t key_size,void *key_data,size_t *data_size,vo
 	pdb_info = store_db.slot_ptr;
 	pthread_rwlock_unlock(&rwlock);
 
-	index = atoi(pdb_info->name + strlen(dbname_prefix));
+	index = ato_uint64(pdb_info->name + strlen(dbname_prefix));
 
 	pthread_mutex_lock(&alldb_mtx);
 	for(i = index;i >= 0;i--)
@@ -444,4 +451,17 @@ void warm_up(DB *dbp)
 	
 	dbp->put(dbp, NULL, &key, &data, DB_AUTO_COMMIT);
 	dbp->del(dbp, NULL, &key, 0);
+}
+
+uint64_t ato_uint64(char *str)
+{
+	uint64_t val = 0;
+
+	while((*str) != '\0')
+	{
+		val = val * 10 + (*str) - 48;
+		str++;
+	}
+
+	return val;
 }
