@@ -11,7 +11,7 @@
 
 int main(int argc, char **argv)
 {
-	uint64_t key;
+	uint64_t key = 0;
 	struct timespec start_time, end_time;
 	uint64_t diff;
 	FILE *fp = fopen(argv[1], "w");
