@@ -8,6 +8,7 @@
 #include <inttypes.h>
 
 #define BILLION 1000000000UL
+#define MILLION 1000000UL
 
 int main(int argc, char **argv)
 {
@@ -18,7 +19,7 @@ int main(int argc, char **argv)
 	
 	initialize_db(0);
 	
-	while(1)
+	while(key < MILLION)
 	{
 		clock_gettime(CLOCK_MONOTONIC, &start_time);
 		store_record(sizeof(uint64_t), &key, sizeof(uint64_t), &key);
