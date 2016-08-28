@@ -56,7 +56,7 @@ pthread_rwlock_t rwlock;
 pthread_spinlock_t pn_lock;		//notice 4
 
 //function declaration
-db * initialize_db(const char* db_name, uint32_t flag);
+void initialize_db(const char* db_name, uint32_t flag);
 void * db_manage(void *arg);
 void consume();
 void switch_slot();
@@ -66,7 +66,7 @@ int retrieve_record(size_t key_size,void *key_data,size_t *data_size,void **data
 void warm_up(DB *dbp);
 uint64_t ato_uint64(char *str);
 
-db * initialize_db(const char* db_name, uint32_t flag)
+void initialize_db(const char* db_name, uint32_t flag)
 {
 	int ret, i;
 	pthread_t db_manage_id;
@@ -169,7 +169,7 @@ db * initialize_db(const char* db_name, uint32_t flag)
 		exit(ERROR);
 	}
 
-	return NULL;
+	return;
 }
 
 void * db_manage(void *arg)

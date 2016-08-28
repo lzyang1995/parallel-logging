@@ -17,7 +17,7 @@ int main(int argc, char **argv)
 	uint64_t diff;
 	FILE *fp = fopen(argv[1], "w");
 	
-	initialize_db(0);
+	initialize_db("name", 0);
 	
 	while(key < MILLION)
 	{
