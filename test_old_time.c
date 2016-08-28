@@ -4,11 +4,12 @@
 #include <time.h>
 #include <stdint.h>
 #include <inttypes.h>
+#include <string.h>
 
 #define BILLION 1000000000UL
 #define MILLION 1000000UL
 
-int main()
+int main(int argc, char **argv)
 {
 	DB *dbp;
 	int ret;
